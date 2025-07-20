@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -28,7 +29,7 @@ func GetInt(key string, defaultValue int) (int, error) {
 
 	val, err := strconv.Atoi(value)
 	if err != nil {
-		return 0, fmt.Errorf("failed to get %s from env: invalid number %s, err: %w", key, value, err)
+		return 0, fmt.Errorf("env %s: invalid number %s, err: %w", key, value, err)
 	}
 
 	return val, nil
@@ -40,24 +41,31 @@ func GetDuration(key string, defaultValue time.Duration) (time.Duration, error) 
 		return defaultValue, nil
 	}
 
+	globalSign := 1
+	posValue := value
+	if strings.HasPrefix(value, "-") {
+		globalSign = -1
+		posValue = strings.TrimPrefix(value, "-")
+	}
+
+	re := regexp.MustCompile(`^(\d+[a-zA-Z]+)+$`)
+	if !re.MatchString(posValue) {
+		return 0, fmt.Errorf("env %s: invalid duration format: %s", key, value)
+	}
+
+	componentRe := regexp.MustCompile(`(\d+)([a-zA-Z]+)`)
+	matches := componentRe.FindAllStringSubmatch(posValue, -1)
+	if matches == nil {
+		return 0, fmt.Errorf("env %s: invalid duration format: %s", key, value)
+	}
+
 	var total time.Duration
 
-	parts := strings.Fields(value)
-	for _, part := range parts {
-		var numStr string
-		var unit string
-		for i, r := range part {
-			if r >= '0' && r <= '9' || r == '-' {
-				numStr += string(r)
-				continue
-			}
-			unit = part[i:]
-			break
-		}
-
+	for _, match := range matches {
+		numStr, unit := match[1], match[2]
 		num, err := strconv.Atoi(numStr)
 		if err != nil {
-			return 0, fmt.Errorf("failed to get %s from env: invalid number: %s, err: %w", key, numStr, err)
+			return 0, fmt.Errorf("env %s: invalid integer: %s, err: %w", key, numStr, err)
 		}
 
 		switch unit {
@@ -74,10 +82,14 @@ func GetDuration(key string, defaultValue time.Duration) (time.Duration, error) 
 		case "h":
 			total += time.Duration(num) * time.Hour
 		case "d":
-			total += time.Duration(num) * time.Hour * 24
+			total += time.Duration(num) * 24 * time.Hour
 		default:
-			return 0, fmt.Errorf("failed to get %s from env: invalid time unit: %s, err: %w", key, unit, ErrUnknownTimeUnit)
+			return 0, fmt.Errorf("env %s: invalid time unit: %s, err: %w", key, unit, ErrUnknownTimeUnit)
 		}
+	}
+
+	if globalSign < 0 {
+		total = -total
 	}
 
 	return total, nil

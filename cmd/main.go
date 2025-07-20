@@ -45,5 +45,4 @@ func main() {
 }
 
 func run(conf *config.Config, logger *zerolog.Logger) {
-
 }
