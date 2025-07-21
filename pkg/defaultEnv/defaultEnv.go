@@ -21,6 +21,20 @@ func GetString(key string, defaultValue string) string {
 	return value
 }
 
+func GetBool(key string, defaultValue bool) (bool, error) {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue, nil
+	}
+
+	val, err := strconv.ParseBool(value)
+	if err != nil {
+		return false, fmt.Errorf("env %s: invalid bool value %s, err: %w", key, value, err)
+	}
+
+	return val, nil
+}
+
 func GetInt(key string, defaultValue int) (int, error) {
 	value := os.Getenv(key)
 	if value == "" {
