@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
@@ -10,7 +11,7 @@ import (
 
 	"github.com/Be1chenok/messenger/config"
 	"github.com/Be1chenok/messenger/pkg/logger"
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
 type Server struct {
@@ -33,14 +34,16 @@ func New(conf *config.HTTPServer, logger logger.Logger, handler http.Handler) *S
 	}
 }
 
-func InitHandler(fs ...func(*mux.Router)) http.Handler {
-	r := mux.NewRouter()
+func InitHandler(fs ...func(*gin.Engine)) http.Handler {
+	gin.SetMode(gin.ReleaseMode)
+	gin.DefaultWriter = io.Discard
+	engine := gin.Default()
 
 	for _, f := range fs {
-		f(r)
+		f(engine)
 	}
 
-	return r
+	return engine
 }
 
 func (s Server) Run() {

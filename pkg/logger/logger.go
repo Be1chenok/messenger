@@ -16,6 +16,8 @@ type Logger interface {
 	Infof(format string, args ...any)
 	Error(err error, msg string)
 	Errorf(err error, format string, args ...any)
+	Errors(msg, key string, errs ...error)
+	Errorsf(key string, errs []error, format string, args ...any)
 	Fatal(err error, msg string)
 	Fatalf(err error, format string, args ...any)
 	WithStr(key, value string) Logger
@@ -43,6 +45,14 @@ func (l logger) Error(err error, msg string) {
 
 func (l logger) Errorf(err error, format string, args ...any) {
 	l.Logger.Error().Err(err).Msgf(format, args...)
+}
+
+func (l logger) Errors(msg, key string, errs ...error) {
+	l.Logger.Error().Errs(key, errs).Msg(msg)
+}
+
+func (l logger) Errorsf(key string, errs []error, format string, args ...any) {
+	l.Logger.Error().Errs(key, errs).Msgf(format, args...)
 }
 
 func (l logger) Fatal(err error, msg string) {

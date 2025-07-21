@@ -5,7 +5,7 @@ import (
 
 	"github.com/Be1chenok/messenger/config"
 	"github.com/Be1chenok/messenger/pkg/logger"
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
@@ -20,12 +20,12 @@ func New(conf *config.Handler, logger logger.Logger) *Handler {
 	}
 }
 
-func (h Handler) Health(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
+func (h Handler) health(c *gin.Context) {
+	c.Status(http.StatusOK)
 }
 
-func (h Handler) Init(r *mux.Router) {
-	router := r.PathPrefix("/api/v1").Subrouter()
-
-	router.HandleFunc("/health", h.Health)
+func (h Handler) Init(r *gin.Engine) {
+	router := r.Group("/api/v1")
+	router.Use(h.loggingMiddleware())
+	router.GET("/health", h.health)
 }
