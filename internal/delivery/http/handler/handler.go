@@ -21,7 +21,8 @@ func New(conf *config.Handler, logger logger.Logger) *Handler {
 }
 
 func (h Handler) health(c *gin.Context) {
-	c.Status(http.StatusOK)
+	c.Error(config.ErrNegativeTimeout)
+	c.Status(http.StatusBadRequest)
 }
 
 func (h Handler) Init(r *gin.Engine) {

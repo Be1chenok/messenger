@@ -16,11 +16,12 @@ type Logger interface {
 	Infof(format string, args ...any)
 	Error(err error, msg string)
 	Errorf(err error, format string, args ...any)
-	Errors(msg, key string, errs ...error)
-	Errorsf(key string, errs []error, format string, args ...any)
 	Fatal(err error, msg string)
 	Fatalf(err error, format string, args ...any)
 	WithStr(key, value string) Logger
+	WithStrs(key string, values ...string) Logger
+	WithInt(key string, value int) Logger
+	WithFields(value any) Logger
 }
 
 func (l logger) Debug(msg string) {
@@ -47,14 +48,6 @@ func (l logger) Errorf(err error, format string, args ...any) {
 	l.Logger.Error().Err(err).Msgf(format, args...)
 }
 
-func (l logger) Errors(msg, key string, errs ...error) {
-	l.Logger.Error().Errs(key, errs).Msg(msg)
-}
-
-func (l logger) Errorsf(key string, errs []error, format string, args ...any) {
-	l.Logger.Error().Errs(key, errs).Msgf(format, args...)
-}
-
 func (l logger) Fatal(err error, msg string) {
 	l.Logger.Fatal().Err(err).Msg(msg)
 }
@@ -65,6 +58,21 @@ func (l logger) Fatalf(err error, format string, args ...any) {
 
 func (l logger) WithStr(key, value string) Logger {
 	log := l.Logger.With().Str(key, value).Logger()
+	return logger{&log}
+}
+
+func (l logger) WithStrs(key string, values ...string) Logger {
+	log := l.Logger.With().Strs(key, values).Logger()
+	return logger{&log}
+}
+
+func (l logger) WithInt(key string, value int) Logger {
+	log := l.Logger.With().Int(key, value).Logger()
+	return logger{&log}
+}
+
+func (l logger) WithFields(value any) Logger {
+	log := l.Logger.With().Fields(value).Logger()
 	return logger{&log}
 }
 

@@ -1,39 +1,38 @@
 package handler
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/gin-gonic/gin"
 )
 
 func (h Handler) loggingMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		start := time.Now()
 		c.Next()
+		latency := time.Since(start)
 		status := c.Writer.Status()
-		method := c.Request.Method
-		path := c.Request.URL.Path
-		ip := c.ClientIP()
-		userAgent := c.Request.UserAgent()
-		errs := getErrs(c)
 
-		if errs != nil {
-			if len(errs) > 1 {
-				h.logger.Errorsf("errors", errs, "method: %s path: %s ip: %s user-agent: %s status: %d", method, path, ip, userAgent, status)
-				return
+		logger := h.logger.
+			WithStr("method", c.Request.Method).
+			WithStr("path", c.Request.URL.Path).
+			WithStr("ip", c.ClientIP()).
+			WithStr("user-agent", c.Request.UserAgent()).
+			WithInt("status", status).
+			WithStr("latency", latency.String())
+			// TODO:
+		switch {
+		case status >= http.StatusInternalServerError:
+			logger.Error(c.Errors.Last(), "server error")
+		case status >= http.StatusBadRequest:
+			errs := c.Errors.Errors()
+			if len(errs) != 0 {
+				logger = logger.WithStrs("errors", errs...)
 			}
-			h.logger.Errorf(errs[0], "method: %s path: %s ip: %s user-agent: %s status: %d", method, path, ip, userAgent, status)
-			return
+			logger.Info("client error")
+		default:
+			logger.Info("request handled")
 		}
-		h.logger.Infof("method: %s path: %s ip: %s user-agent: %s status: %d", method, path, ip, userAgent, status)
 	}
-}
-
-func getErrs(c *gin.Context) []error {
-	ginErrs := c.Errors
-	if len(ginErrs) == 0 {
-		return nil
-	}
-	errorStrings := make([]error, len(ginErrs))
-	for i, err := range ginErrs {
-		errorStrings[i] = err
-	}
-	return errorStrings
 }
